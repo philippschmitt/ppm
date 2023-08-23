@@ -44,13 +44,6 @@ jobs:
         with:
           # Upload entire repository
           path: '.'
-      - name: Push changes to deploy branch
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: deploy  # The branch where you want to push the changes
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
-        with:
-          ref: deploy  # The branch you want to deploy from
