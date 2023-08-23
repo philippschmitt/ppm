@@ -1,5 +1,6 @@
 # ppm
-A file-based API for historical atmospheric CO2 concentrations
+A file-based API for historical atmospheric CO2 concentrations.
+
 Data comes from https://gml.noaa.gov/ccgg/trends/gl_data.html and includes monthly and annual data ranging from January 1979 to today (always a few months behind).
 
 ## How to use
