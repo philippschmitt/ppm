@@ -9,5 +9,9 @@ The API is hosted on GitHub Pages and makes the following endpoints available:
 ### Globally averaged marine surface annual mean data
 `https://philippschmitt.github.io/ppm/v1/{YYYY}`
 
+NOAA data does not include the annual mean for the current year (obviously...). For the current year, the API returns the mean of the monthly trend data available-to-date.
+
 ### Globally averaged marine surface monthly trend data (de-seasonalized)
-`https://philippschmitt.github.io/ppm/v1/{YYYY}/{M}`
+`https://philippschmitt.github.io/ppm/v1/{YYYY}/{m}`
+
+NOAA data is a few months behind (three, at time of writing). Missing months are filled in with data from the [Estimated Global Trend daily values](https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_trend_gl.csv) dataset. Each month uses the first available row, i.e. first day of the month.
