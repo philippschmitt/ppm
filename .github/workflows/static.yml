@@ -6,7 +6,7 @@ on:
   push:
     branches: ["main"]
   schedule:
-    - cron:  '0 6 1 * *'
+    - cron:  '1 0 2 * *'
     # This runs at 10:00 AM UTC each day.
     # * is a special character in YAML so you have to quote this string
 
