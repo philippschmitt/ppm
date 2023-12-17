@@ -113,6 +113,7 @@ if __name__ == "__main__":
 
     # Fill in recent months from estimated daily values
     daily = iterate_csv_rows(daily_data)
+    last_row_ppm = {}
     for row in daily:
       # Only consider current and past year
       if int(row['year']) >= today.year-1:
@@ -123,6 +124,7 @@ if __name__ == "__main__":
         if os.path.exists(path):
           continue
         # Create monthly file from first day of the month
+        last_row = float(row['trend'])
         write_json_file(
           {
             'year': int(row['year']),
@@ -131,3 +133,16 @@ if __name__ == "__main__":
           }, 
           path
         )
+
+    # If there's no data for current month, copy the previous month's data
+    path = os.path.join(os.getcwd(), api_version, str(today.year), str(today.month), 'index.json')
+    if (os.path.exists(path) == False):
+      write_json_file(
+        {
+          'year': today.year,
+          'month': today.month,
+          'ppm': last_row_ppm,
+          'simulated': True,
+        },
+        path
+      )
