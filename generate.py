@@ -102,14 +102,15 @@ if __name__ == "__main__":
         annual_trend_n_samples += 1
 
     # Calculate annual mean to date and store
-    annual_mean_to_date = annual_trend_total / annual_trend_n_samples
-    write_json_file(
-      {
-        'year': today.year,
-        'ppm': annual_mean_to_date,
-      }, 
-      os.path.join(os.getcwd(), api_version, str(today.year), 'index.json')
-    )
+    if(annual_trend_n_samples > 0):
+      annual_mean_to_date = annual_trend_total / annual_trend_n_samples
+      write_json_file(
+        {
+          'year': today.year,
+          'ppm': annual_mean_to_date,
+        }, 
+        os.path.join(os.getcwd(), api_version, str(today.year), 'index.json')
+      )
 
     # Fill in recent months from estimated daily values
     daily = iterate_csv_rows(daily_data)

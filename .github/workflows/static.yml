@@ -6,8 +6,8 @@ on:
   push:
     branches: ["main"]
   schedule:
-    - cron:  '1 0 2 * *'
-    # This runs at 10:00 AM UTC each day.
+    - cron:  '0 1 2 * *'
+    # This runs at 01:00 every 2nd day of the month
     # * is a special character in YAML so you have to quote this string
 
   # Allows you to run this workflow manually from the Actions tab
