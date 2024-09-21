@@ -135,18 +135,25 @@ if __name__ == "__main__":
                 )
 
     # Write computed monthly data
+    last_month_data = 0
     for year in monthly_data_computed:
         for month in monthly_data_computed[year]:
+            data = mean(monthly_data_computed[year][month])
+            # If there is no daily data for the current month, we'd get a 0 value.
+            # In this case, use last month's data until we have data available.
+            if data == 0:
+                data = last_month_data
             write_json_file(
                 {
                     "year": year,
                     "month": month,
-                    "ppm": mean(monthly_data_computed[year][month]),
+                    "ppm": data,
                 },
                 os.path.join(
                     os.getcwd(), api_version, str(year), str(month), "index.json"
                 ),
             )
+            last_month_data = data
 
     # Write year-to-date as annual value
     write_json_file(
