@@ -4,42 +4,46 @@ import os
 import shutil
 import json
 import datetime
+from statistics import mean
+
 
 def fetch_csv_from_web(url):
     try:
         # Fetch the data from the URL
         response = urllib.request.urlopen(url)
-        data = response.read().decode('utf-8')
+        data = response.read().decode("utf-8")
         return data
     except Exception as e:
         print("An error occurred:", e)
         return None
 
+
 # Ignore comments in csv file
 # Source: https://stackoverflow.com/questions/14158868/python-skip-comment-lines-marked-with-in-csv-dictreader
 def decomment(csvfile):
     for row in csvfile:
-        raw = row.split('#')[0].strip()
-        if raw: yield raw
+        raw = row.split("#")[0].strip()
+        if raw:
+            yield raw
+
 
 def iterate_csv_rows(csv_data):
-  if csv_data is not None:
-      csv_lines = csv_data.splitlines()
-      csv_reader = csv.DictReader(decomment(csv_lines))
-      return csv_reader
-  else:
-      print("CSV data is not available.")
+    if csv_data is not None:
+        csv_lines = csv_data.splitlines()
+        csv_reader = csv.DictReader(decomment(csv_lines), skipinitialspace=True)
+        return csv_reader
+    else:
+        print("CSV data is not available.")
 
 
 def write_json_file(dict, filename):
-  try:
-    os.makedirs(os.path.dirname(filename))
-  except FileExistsError:
-    # directory already exists
-    pass
-  with open(filename, "w") as f:
-    json.dump(dict, f)
-
+    try:
+        os.makedirs(os.path.dirname(filename))
+    except FileExistsError:
+        # directory already exists
+        pass
+    with open(filename, "w") as f:
+        json.dump(dict, f)
 
 
 if __name__ == "__main__":
@@ -50,100 +54,112 @@ if __name__ == "__main__":
     daily_csv_url = "https://gml.noaa.gov/webdata/ccgg/trends/co2/co2_trend_gl.csv"
 
     # API Version 1
-    # GET: philippschmitt.github.io/ppm/{YYYY}/{M}
+    # GET: philippschmitt.github.io/ppm/{api_version}/{YYYY}/{M}
     api_version = "v1"
 
-    # Fetch data
+    # Fetched data
     annual_data = fetch_csv_from_web(annual_csv_url)
     monthly_data = fetch_csv_from_web(monthly_csv_url)
     daily_data = fetch_csv_from_web(daily_csv_url)
+    # Computed data
+    year_to_date_data = []
+    monthly_data_computed = {}
 
-    # Delete API folder if it already exists (i.e. previous build)
+    # Delete API folder if it already exists from previous build
     shutil.rmtree(os.path.join(os.getcwd(), api_version), ignore_errors=True)
 
+    latest_annual_data_date = None
+    latest_monthly_data_date = None
+    today = datetime.datetime.combine(
+        datetime.date.today(), datetime.datetime.min.time()
+    )
+
     # Get annual mean atmospheric carbon and store in year folders
-    annual = iterate_csv_rows(annual_data)
-    for row in annual:
-      write_json_file(
-        {
-          'year': int(row['year']),
-          'ppm': float(row['mean']),
-        }, 
-        os.path.join(os.getcwd(), api_version, row['year'], 'index.json')
-      )
+    for row in iterate_csv_rows(annual_data):
+        write_json_file(
+            {
+                "year": int(row["year"]),
+                "ppm": float(row["mean"]),
+            },
+            os.path.join(os.getcwd(), api_version, row["year"], "index.json"),
+        )
+        # Update latest annual data record
+        latest_annual_data_date = datetime.datetime(int(row["year"]), 1, 1)
 
     # Get monthly atmospheric carbon and store in month folders
-    monthly = iterate_csv_rows(monthly_data)
-    monthly_data_latest = {}
-    # Calculate annual mean based on current available data
-    today = datetime.date.today()
-    annual_trend_total = 0.0
-    annual_trend_n_samples = 0
-    annual_mean_to_date = 0.0
-
-    # Write monthly data
-    for row in monthly:
-      write_json_file(
-        # Create output dictionary
-        {
-          'year': int(row['year']),
-          'month': int(row['month']),
-          'ppm': float(row['trend']),
-        }, 
-        # Create output path
-        os.path.join(os.getcwd(), api_version, row['year'], row['month'], 'index.json')
-      )
-      # Update latest monthly data record
-      monthly_data_latest = { 'year': int(row['year']), 'month': int(row['month']) }
-
-      # Calculate the current (up-to-today) annual mean
-      if int(row['year']) == today.year:
-        annual_trend_total += float(row['trend'])
-        annual_trend_n_samples += 1
-
-    # Calculate annual mean to date and store
-    if(annual_trend_n_samples > 0):
-      annual_mean_to_date = annual_trend_total / annual_trend_n_samples
-      write_json_file(
-        {
-          'year': today.year,
-          'ppm': annual_mean_to_date,
-        }, 
-        os.path.join(os.getcwd(), api_version, str(today.year), 'index.json')
-      )
-
-    # Fill in recent months from estimated daily values
-    daily = iterate_csv_rows(daily_data)
-    last_row_ppm = {}
-    for row in daily:
-      # Only consider current and past year
-      if int(row['year']) >= today.year-1:
-        # This CSV has leading spaces on months. Remove them.
-        month = row['month'].lstrip()
-        # Check if this month folder exists
-        path = os.path.join(os.getcwd(), api_version, row['year'], month, 'index.json')
-        if os.path.exists(path):
-          continue
-        # Create monthly file from first day of the month
-        last_row = float(row['trend'])
+    for row in iterate_csv_rows(monthly_data):
         write_json_file(
-          {
-            'year': int(row['year']),
-            'month':int(month),
-            'ppm': float(row['trend'])
-          }, 
-          path
+            {
+                "year": int(row["year"]),
+                "month": int(row["month"]),
+                "ppm": float(row["trend"]),
+            },
+            os.path.join(
+                os.getcwd(), api_version, row["year"], row["month"], "index.json"
+            ),
+        )
+        # Update latest monthly data record
+        latest_monthly_data_date = datetime.datetime(
+            int(row["year"]), int(row["month"]), 1
         )
 
-    # If there's no data for current month, copy the previous month's data
-    path = os.path.join(os.getcwd(), api_version, str(today.year), str(today.month), 'index.json')
-    if (os.path.exists(path) == False):
-      write_json_file(
+    # Create data structure for back-filling data
+    current_date = latest_monthly_data_date.replace(
+        month=latest_monthly_data_date.month + 1
+    )
+    while current_date <= today:
+        # Add empty dict
+        if current_date.year not in monthly_data_computed:
+            monthly_data_computed[current_date.year] = {}
+        if current_date.month not in monthly_data_computed[current_date.year]:
+            monthly_data_computed[current_date.year][current_date.month] = []
+        # Increment to the next month
+        if current_date.month == 12:
+            current_date = current_date.replace(year=current_date.year + 1, month=1)
+        else:
+            current_date = current_date.replace(month=current_date.month + 1)
+
+    # Populate recent months from estimated daily values
+    for row in iterate_csv_rows(daily_data):
+        # For efficiency, only consider current and past year
+        if int(row["year"]) < today.year - 1:
+            continue
+        # Add current year data to year-to-date
+        if int(row["year"]) > latest_annual_data_date.year:
+            year_to_date_data.append(float(row["trend"]))
+        # Store monthly data
+        if float(row["year"]) in monthly_data_computed:
+            if float(row["month"]) in monthly_data_computed[float(row["year"])]:
+                monthly_data_computed[float(row["year"])][float(row["month"])].append(
+                    float(row["trend"])
+                )
+
+    # Write computed monthly data
+    last_month_data = 0
+    for year in monthly_data_computed:
+        for month in monthly_data_computed[year]:
+            data = mean(monthly_data_computed[year][month])
+            # If there is no daily data for the current month, we'd get a 0 value.
+            # In this case, use last month's data until we have data available.
+            if data == 0:
+                data = last_month_data
+            write_json_file(
+                {
+                    "year": year,
+                    "month": month,
+                    "ppm": data,
+                },
+                os.path.join(
+                    os.getcwd(), api_version, str(year), str(month), "index.json"
+                ),
+            )
+            last_month_data = data
+
+    # Write year-to-date as annual value
+    write_json_file(
         {
-          'year': today.year,
-          'month': today.month,
-          'ppm': last_row_ppm,
-          'simulated': True,
+            "year": today.year,
+            "ppm": mean(year_to_date_data),
         },
-        path
-      )
+        os.path.join(os.getcwd(), api_version, row["year"], "index.json"),
+    )
