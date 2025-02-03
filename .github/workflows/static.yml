@@ -6,7 +6,7 @@ on:
   push:
     branches: ["main"]
   schedule:
-    - cron:  '0 1 2 * *'
+    - cron: "0 1 2 * *"
     # This runs at 01:00 every 2nd day of the month
     # * is a special character in YAML so you have to quote this string
 
@@ -34,20 +34,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - name: setup python
-        uses: actions/setup-python@v4
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10' # install the python version needed
-      - name: execute py script # run generate.py
+          python-version: "3.12" # Updated to latest stable Python version
+      - name: Execute Python script
         run: python generate.py
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v4
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
-          path: '.'
+          path: "."
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
